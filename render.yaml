@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: quran-ai-backend
+    runtime: docker
+    repo: https://github.com/yourusername/quran-ai
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    # Environment variables (set these in Render dashboard)
+    envVars:
+      - key: Z_AI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: TAVILY_API_KEY
+        sync: false  # Optional, set manually if you have one
+    # Health check path
+    healthCheckPath: /health
+    # Auto-deploy on push
+    autoDeploy: true
