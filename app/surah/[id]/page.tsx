@@ -181,10 +181,11 @@ export default function SurahPage() {
     setAiLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/explain-stream', {
+      const res = await fetch('/api/explain', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
           ayahText: ayah.text,

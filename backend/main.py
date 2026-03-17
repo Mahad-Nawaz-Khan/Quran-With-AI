@@ -330,4 +330,4 @@ async def explain_ayah(req: ExplainRequest) -> ExplainResponse:
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "model": "google/gemma-3-4b-it:free", "provider": "OpenRouter", "version": "2.0-fast"}
+    return {"status": "ok", "model": "minimax/minimax-m2.5:free", "provider": "OpenRouter", "version": "2.0-fast"}
