@@ -1,10 +1,10 @@
 """
 Quran-AI Python Backend — Optimised for speed
-FastAPI server using OpenAI Agents SDK with Z.ai (glm-4.7-flash).
+FastAPI server using OpenAI Agents SDK with OpenRouter.
 Grounding tools: Al-Quran Cloud API + Tavily Web Search
 
 Streaming: Uses Runner.run() then simulates streaming by chunking the
-final output into SSE events — reliable with Z.ai's proxy endpoint.
+final output into SSE events.
 """
 
 import os
@@ -29,20 +29,20 @@ logger = logging.getLogger(__name__)
 # ── Load environment ──────────────────────────────────────────────────────────
 load_dotenv()
 
-Z_AI_API_KEY = os.getenv("Z_AI_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
-if not Z_AI_API_KEY:
-    raise RuntimeError("Z_AI_API_KEY is not set in backend/.env")
+if not OPENROUTER_API_KEY:
+    raise RuntimeError("OPENROUTER_API_KEY is not set in backend/.env")
 
 # ── Singleton OpenAI + model ─────────────────────────────────────────────────
 custom_client = AsyncOpenAI(
-    base_url="https://api.z.ai/api/paas/v4/",
-    api_key=Z_AI_API_KEY,
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
 )
 
 model = OpenAIChatCompletionsModel(
-    model="glm-4.7-flash",
+    model="minimax/minimax-m2.5:free",
     openai_client=custom_client,
 )
 
@@ -330,4 +330,4 @@ async def explain_ayah(req: ExplainRequest) -> ExplainResponse:
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "model": "glm-4.7-flash", "provider": "Z.ai", "version": "2.0-fast"}
+    return {"status": "ok", "model": "google/gemma-3-4b-it:free", "provider": "OpenRouter", "version": "2.0-fast"}
