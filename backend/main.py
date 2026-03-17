@@ -42,7 +42,7 @@ custom_client = AsyncOpenAI(
 )
 
 model = OpenAIChatCompletionsModel(
-    model="minimax/minimax-m2.5:free",
+    model="meta-llama/llama-3.3-70b-instruct:free",
     openai_client=custom_client,
 )
 
@@ -330,4 +330,4 @@ async def explain_ayah(req: ExplainRequest) -> ExplainResponse:
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "model": "minimax/minimax-m2.5:free", "provider": "OpenRouter", "version": "2.0-fast"}
+    return {"status": "ok", "model": "meta-llama/llama-3.3-70b-instruct:free", "provider": "OpenRouter", "version": "2.0-fast"}

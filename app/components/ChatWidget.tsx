@@ -25,6 +25,7 @@ export default function ChatWidget() {
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const PYTHON_BACKEND_URL = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'http://localhost:8000';
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,7 +64,7 @@ export default function ChatWidget() {
     setIsStreaming(true);
 
     try {
-      const res = await fetch('http://localhost:8000/explain-stream', {
+      const res = await fetch(`${PYTHON_BACKEND_URL}/explain-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
