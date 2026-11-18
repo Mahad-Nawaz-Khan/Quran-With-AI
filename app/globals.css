@@ -1,18 +1,29 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Jameel Noori Nastaleeq';
+  src: url('/fonts/Jameel-Noori-Nastaleeq.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #1f2125;
-  --foreground: #ffffff;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --primary: #2ca4ab;
   --primary-light: #3dbfc7;
-  --primary-dark: #258a90;
-  --secondary: #9ca3af;
+  --primary-dark: #1d7d83;
+  --secondary: #475569;
   --accent: #2ca4ab;
-  --card-bg: #2d2f33;
-  --border: #3a3d42;
-  --text-muted: #9ca3af;
+  --card-bg: #ffffff;
+  --card-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --text-muted: #64748b;
+  --surface-elevated: #f1f5f9;
   --font-arabic: 'Amiri', 'Noto Naskh Arabic', serif;
   --font-sans: 'Inter', system-ui, sans-serif;
+  --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', var(--font-arabic);
 }
 
 .dark {
@@ -24,8 +35,10 @@
   --secondary: #9ca3af;
   --accent: #2ca4ab;
   --card-bg: #2d2f33;
+  --card-hover: #35383d;
   --border: #3a3d42;
   --text-muted: #9ca3af;
+  --surface-elevated: #25282c;
 }
 
 @theme inline {
@@ -37,10 +50,13 @@
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
   --color-card-bg: var(--card-bg);
+  --color-card-hover: var(--card-hover);
   --color-border: var(--border);
   --color-text-muted: var(--text-muted);
+  --color-surface-elevated: var(--surface-elevated);
   --font-sans: var(--font-sans);
   --font-arabic: var(--font-arabic);
+  --font-urdu: var(--font-urdu);
 }
 
 * {
@@ -56,6 +72,16 @@ body {
 
 .font-arabic {
   font-family: var(--font-arabic);
+}
+
+.font-urdu {
+  font-family: var(--font-urdu);
+  line-height: 2.2;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
 }
 
 .ayah-number {
@@ -91,7 +117,7 @@ body {
 /* ── Markdown rendering styles ─────────────────────────────────────────────── */
 
 .markdown-body {
-  color: #e5e7eb;
+  color: var(--foreground);
   font-size: 0.875rem;
   line-height: 1.7;
 }
@@ -100,11 +126,18 @@ body {
 .markdown-body h2,
 .markdown-body h3,
 .markdown-body h4 {
-  color: #2ca4ab;
+  color: var(--primary-dark);
   font-weight: 700;
   margin-top: 1rem;
   margin-bottom: 0.4rem;
   line-height: 1.4;
+}
+
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3,
+.dark .markdown-body h4 {
+  color: var(--primary);
 }
 
 .markdown-body h1 { font-size: 1.25rem; }
@@ -116,12 +149,12 @@ body {
 }
 
 .markdown-body strong {
-  color: #ffffff;
+  color: var(--foreground);
   font-weight: 600;
 }
 
 .markdown-body em {
-  color: #d1d5db;
+  color: var(--secondary);
   font-style: italic;
 }
 
@@ -144,29 +177,38 @@ body {
 }
 
 .markdown-body code {
-  background: rgba(44, 164, 171, 0.15);
-  color: #3dbfc7;
+  background: rgba(44, 164, 171, 0.14);
+  color: var(--primary-dark);
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
   font-size: 0.8rem;
 }
 
+.dark .markdown-body code {
+  background: rgba(44, 164, 171, 0.15);
+  color: var(--primary-light);
+}
+
 .markdown-body blockquote {
-  border-left: 3px solid #2ca4ab;
+  border-left: 3px solid var(--primary);
   padding-left: 0.75rem;
   margin: 0.5rem 0;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .markdown-body hr {
   border: none;
-  border-top: 1px solid #3a3d42;
+  border-top: 1px solid var(--border);
   margin: 0.75rem 0;
 }
 
 .markdown-body a {
-  color: #3dbfc7;
+  color: var(--primary-dark);
   text-decoration: underline;
+}
+
+.dark .markdown-body a {
+  color: var(--primary-light);
 }
 
 /* ── Thinking loader animations ────────────────────────────────────────────── */
@@ -204,3 +246,51 @@ body {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
+
+/* ── Hifz memorization blur-reveal ─────────────────────────────────────────── */
+
+.hifz-blurred {
+  filter: blur(8px);
+  user-select: none;
+}
+
+.hifz-revealed {
+  filter: none;
+}
+
+/* ── Tajweed color coding (Light & Dark accessible) ────────────────────────── */
+
+.tajweed-ghunnah { color: #b45309; }
+.dark .tajweed-ghunnah { color: #fbbf24; }
+
+.tajweed-ikhfa { color: #be123c; }
+.dark .tajweed-ikhfa { color: #fb7185; }
+
+.tajweed-iqlab { color: #0369a1; }
+.dark .tajweed-iqlab { color: #38bdf8; }
+
+.tajweed-idgham { color: #15803d; }
+.dark .tajweed-idgham { color: #4ade80; }
+
+.tajweed-qalqalah { color: #6d28d9; }
+.dark .tajweed-qalqalah { color: #a78bfa; }
+
+.tajweed-madd-normal { color: #0f766e; }
+.dark .tajweed-madd-normal { color: #2dd4bf; }
+
+.tajweed-madd-permissible { color: #0e7490; }
+.dark .tajweed-madd-permissible { color: #22d3ee; }
+
+.tajweed-madd-obligatory { color: #1d4ed8; }
+.dark .tajweed-madd-obligatory { color: #60a5fa; }
+
+.tajweed-madd-necessary { color: #991b1b; font-weight: 700; }
+.dark .tajweed-madd-necessary { color: #f87171; font-weight: 700; }
+
+.tajweed-silent {
+  color: #9ca3af;
+}
+.dark .tajweed-silent {
+  color: #6b7280;
+}
+

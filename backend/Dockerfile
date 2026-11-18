@@ -1,27 +1,19 @@
-# Python 3.11 slim image
 FROM python:3.11-slim
 
-# Set working directory
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY main.py .
+COPY --chown=appuser:appgroup . /app/backend/
 
-# Expose port (Render sets PORT env var, defaults to 8000 for local)
+USER appuser
+
 EXPOSE 8000
 
-# Run the FastAPI application with uvicorn
-# Use 0.0.0.0 to bind to all interfaces (required for Render)
-# Use PORT env var if set, otherwise default to 8000
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "exec uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

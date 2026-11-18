@@ -2,35 +2,41 @@
 
 import { useState, useEffect } from 'react';
 
-const THINKING_PHRASES = [
+const FALLBACK_PHRASES: readonly string[] = [
   '🔍 Searching the Quran...',
-  '📖 Reading scholarly sources...',
-  '🕌 Finding relevant context...',
-  '✨ Crafting your answer...',
-  '🌙 Gathering Islamic insights...',
+  '📖 Consulting canonical verses...',
+  '🕌 Grounding in verified Islamic sources...',
+  '✨ Synthesizing explanation...',
 ];
 
-export default function ThinkingLoader() {
+interface ThinkingLoaderProps {
+  status?: string;
+}
+
+export default function ThinkingLoader({ status }: ThinkingLoaderProps) {
   const [phraseIndex, setPhraseIndex] = useState(0);
 
   useEffect(() => {
+    if (status !== undefined) return;
     const interval = setInterval(() => {
-      setPhraseIndex((prev) => (prev + 1) % THINKING_PHRASES.length);
+      setPhraseIndex((prev) => (prev + 1) % FALLBACK_PHRASES.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [status]);
+
+  const activeStatus = status ?? FALLBACK_PHRASES[phraseIndex];
 
   return (
-    <div className="flex flex-col gap-3 py-2">
-      {/* Shimmer bars */}
-      <div className="space-y-2.5">
-        <div className="h-3 rounded-full bg-[#3a3d42] shimmer-bar w-[90%]" />
-        <div className="h-3 rounded-full bg-[#3a3d42] shimmer-bar w-[75%]" style={{ animationDelay: '0.15s' }} />
-        <div className="h-3 rounded-full bg-[#3a3d42] shimmer-bar w-[60%]" style={{ animationDelay: '0.3s' }} />
+    <div className="block py-2" aria-live="polite">
+      {/* Shimmer indicator bars */}
+      <div className="space-y-2 mb-2">
+        <div className="h-2.5 rounded-full bg-[var(--border)] animate-pulse w-[85%]" />
+        <div className="h-2.5 rounded-full bg-[var(--border)] animate-pulse w-[70%]" />
       </div>
-      {/* Rotating phrase */}
-      <p className="text-xs text-gray-500 transition-opacity duration-500 animate-fade-phrase">
-        {THINKING_PHRASES[phraseIndex]}
+      {/* Real-time status */}
+      <p className="text-xs text-[var(--primary)] font-medium flex items-center gap-1.5">
+        <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-ping inline-block shrink-0" />
+        <span>{activeStatus}</span>
       </p>
     </div>
   );

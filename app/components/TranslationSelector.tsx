@@ -1,27 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown, Check, Globe } from 'lucide-react';
-
-interface Translation {
-  id: string;
-  name: string;
-  language: string;
-  author?: string;
-}
-
-const TRANSLATIONS: Translation[] = [
-  { id: 'en.asad', name: 'Muhammad Asad', language: 'English' },
-  { id: 'en.sahih', name: 'Saheeh International', language: 'English' },
-  { id: 'en.pickthall', name: 'Pickthall', language: 'English' },
-  { id: 'en.yusufali', name: 'Yusuf Ali', language: 'English' },
-  { id: 'ur.jalandhry', name: 'Jalandhry', language: 'Urdu' },
-  { id: 'ur.khan', name: 'Fatah Muhammad Jalandhry', language: 'Urdu' },
-  { id: 'id.indonesian', name: 'Indonesian', language: 'Indonesian' },
-  { id: 'fr.hamidullah', name: 'Hamidullah', language: 'French' },
-  { id: 'de.bubenheim', name: 'Bubenheim & Elyas', language: 'German' },
-  { id: 'tr.diyanet', name: 'Diyanet', language: 'Turkish' },
-];
+import { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Globe } from 'lucide-react';
+import {
+  TRANSLATION_EDITIONS,
+  MAX_PARALLEL_TRANSLATIONS,
+  LEGACY_TRANSLATION_ALIASES,
+} from '@/lib/quran/constants';
 
 interface TranslationSelectorProps {
   selectedIds: string[];
@@ -30,62 +15,108 @@ interface TranslationSelectorProps {
 
 export default function TranslationSelector({ selectedIds, onChange }: TranslationSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const toggleTranslation = (id: string) => {
-    if (selectedIds.includes(id)) {
-      onChange(selectedIds.filter(t => t !== id));
-    } else if (selectedIds.length < 3) {
-      onChange([...selectedIds, id]);
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (!(event.target instanceof Node)) return;
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const normalizedSelectedIds = selectedIds.map(
+    (id) => LEGACY_TRANSLATION_ALIASES[id] ?? id
+  );
+
+  const handleToggle = (id: string) => {
+    if (normalizedSelectedIds.includes(id)) {
+      if (normalizedSelectedIds.length > 1) {
+        onChange(normalizedSelectedIds.filter((t) => t !== id));
+      }
+      return;
+    }
+    if (normalizedSelectedIds.length < MAX_PARALLEL_TRANSLATIONS) {
+      onChange([...normalizedSelectedIds, id]);
     }
   };
 
-  const getSelectedNames = () => {
-    const selected = TRANSLATIONS.filter(t => selectedIds.includes(t.id));
-    if (selected.length === 0) return 'Select translations';
-    return selected.map(t => t.name).join(', ');
-  };
+  const selectedTranslations = TRANSLATION_EDITIONS.filter((t) =>
+    normalizedSelectedIds.includes(t.id)
+  );
+
+  const displayLabel =
+    selectedTranslations.length > 0
+      ? selectedTranslations.map((t) => t.name).join(', ')
+      : 'Select translations';
 
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative inline-block text-left">
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-card-bg border border-border rounded-lg hover:border-primary transition-colors"
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        aria-label="Select translations"
+        className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg text-[var(--foreground)] text-xs sm:text-sm hover:border-[var(--primary)] transition-colors"
       >
-        <Globe className="w-4 h-4 text-text-muted" />
-        <span className="text-sm text-foreground truncate max-w-50">
-          {getSelectedNames()}
+        <Globe className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+        <span className="truncate max-w-[140px] sm:max-w-[200px] text-left">
+          {displayLabel}
         </span>
-        <ChevronDown className={`w-4 h-4 text-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-card-bg border border-border rounded-lg shadow-lg z-20">
-          <div className="p-3 border-b border-border">
-            <p className="text-sm font-medium text-foreground">Translations</p>
-            <p className="text-xs text-text-muted">Select up to 3</p>
+        <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 max-w-[90vw] bg-[var(--card-bg)] border border-[var(--border)] rounded-xl shadow-xl z-30 p-2 text-[var(--foreground)]">
+          <div className="px-3 py-2 border-b border-[var(--border)] flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Translations
+            </span>
+            <span className="text-xs text-[var(--primary)] font-medium">
+              {normalizedSelectedIds.length}/{MAX_PARALLEL_TRANSLATIONS} selected
+            </span>
           </div>
-          <div className="max-h-64 overflow-y-auto">
-            {TRANSLATIONS.map((translation) => (
-              <button
-                key={translation.id}
-                onClick={() => toggleTranslation(translation.id)}
-                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-background transition-colors"
-              >
-                <div className={`w-5 h-5 rounded border flex items-center justify-center ${
-                  selectedIds.includes(translation.id)
-                    ? 'bg-primary border-primary'
-                    : 'border-border'
-                }`}>
-                  {selectedIds.includes(translation.id) && (
-                    <Check className="w-3 h-3 text-white" />
-                  )}
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm text-foreground">{translation.name}</p>
-                  <p className="text-xs text-text-muted">{translation.language}</p>
-                </div>
-              </button>
-            ))}
+
+          <div className="max-h-64 overflow-y-auto divide-y divide-[var(--border)] py-1">
+            {TRANSLATION_EDITIONS.map((edition) => {
+              const isSelected = normalizedSelectedIds.includes(edition.id);
+              const isDisabled =
+                !isSelected && normalizedSelectedIds.length >= MAX_PARALLEL_TRANSLATIONS;
+
+              return (
+                <label
+                  key={edition.id}
+                  className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
+                    isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--card-hover)]'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    disabled={isDisabled}
+                    onChange={() => handleToggle(edition.id)}
+                    className="mt-0.5 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-[var(--foreground)]">{edition.name}</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">
+                      {edition.language} • {edition.id}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
