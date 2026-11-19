@@ -50,6 +50,8 @@ from backend.tools.tafsir_api import fetch_tafsir
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+DEFAULT_TRANSLATION_EDITION = "en.sahih"
+
 _TOOL_STATUS_LABELS: dict[str, str] = {
     "get_quran_ayah": "Retrieving verified Quranic verse...",
     "get_quran_range": "Retrieving verified Quranic passage...",
@@ -71,7 +73,9 @@ class ExplainRequest(BaseModel):
     translation: str = Field(default="", max_length=2000)
     surahNumber: int | None = None
     ayahNumber: int | None = None
-    translationEditions: list[str] = Field(default_factory=lambda: ["en.sahih"], max_length=3)
+    translationEditions: list[str] = Field(
+        default_factory=lambda: [DEFAULT_TRANSLATION_EDITION], max_length=3
+    )
     isSearch: bool = False
     history: list[HistoryMessage] = Field(default_factory=list, max_length=20)
 
@@ -519,22 +523,22 @@ async def explain_stream(req: ExplainRequest, request: Request) -> StreamingResp
 async def get_surah(
     surah_id: int,
     request: Request,
-    editions: str = Query("en.sahih", max_length=120),
+    editions: str = Query(DEFAULT_TRANSLATION_EDITION, max_length=120),
     reciter: str = Query("ar.alafasy", max_length=60),
 ) -> dict[str, Any]:
     active_settings, cache, active_http, _, _ = _get_runtime(request)
     raw_eds = [e.strip() for e in editions.split(",") if e.strip() and e.strip() != "quran-uthmani"]
-    translations = tuple(raw_eds[:3]) if raw_eds else ("en.sahih",)
+    translations = tuple(raw_eds[:3]) if raw_eds else (DEFAULT_TRANSLATION_EDITION,)
     try:
-        return await fetch_surah_editions(
-            surah_id,
-            translations=translations,
-            reciter=reciter,
-            http_client=active_http,
-            cache=cache,
-            base_url=active_settings.alquran_api_base,
-            timeout=active_settings.http_timeout_seconds,
-        )
+        async with asyncio.timeout(active_settings.http_timeout_seconds):
+            return await fetch_surah_editions(
+                surah_id,
+                translations=translations,
+                reciter=reciter,
+                http_client=active_http,
+                cache=cache,
+                base_url=active_settings.alquran_api_base,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:
@@ -549,20 +553,20 @@ async def get_surah(
 async def search_quran_endpoint(
     request: Request,
     q: str = Query(..., min_length=1, max_length=200),
-    edition: str = Query("en.sahih", max_length=40),
+    edition: str = Query(DEFAULT_TRANSLATION_EDITION, max_length=40),
     limit: int = Query(40, ge=1, le=100),
 ) -> dict[str, Any]:
     active_settings, cache, active_http, _, _ = _get_runtime(request)
     try:
-        return await search_quran_text(
-            q,
-            edition=edition,
-            limit=limit,
-            http_client=active_http,
-            cache=cache,
-            base_url=active_settings.alquran_api_base,
-            timeout=active_settings.http_timeout_seconds,
-        )
+        async with asyncio.timeout(active_settings.http_timeout_seconds):
+            return await search_quran_text(
+                q,
+                edition=edition,
+                limit=limit,
+                http_client=active_http,
+                cache=cache,
+                base_url=active_settings.alquran_api_base,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:
@@ -582,15 +586,15 @@ async def get_tafsir_endpoint(
 ) -> dict[str, Any]:
     active_settings, cache, active_http, _, _ = _get_runtime(request)
     try:
-        return await fetch_tafsir(
-            surah,
-            ayah,
-            slug=slug,
-            http_client=active_http,
-            cache=cache,
-            quran_com_base=active_settings.quran_com_api_base,
-            timeout=active_settings.http_timeout_seconds,
-        )
+        async with asyncio.timeout(active_settings.http_timeout_seconds):
+            return await fetch_tafsir(
+                surah,
+                ayah,
+                slug=slug,
+                http_client=active_http,
+                cache=cache,
+                quran_com_base=active_settings.quran_com_api_base,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:
@@ -609,14 +613,14 @@ async def get_word_by_word_endpoint(
 ) -> dict[str, Any]:
     active_settings, cache, active_http, _, _ = _get_runtime(request)
     try:
-        return await fetch_word_by_word(
-            surah,
-            ayah,
-            http_client=active_http,
-            cache=cache,
-            quran_com_base=active_settings.quran_com_api_base,
-            timeout=active_settings.http_timeout_seconds,
-        )
+        async with asyncio.timeout(active_settings.http_timeout_seconds):
+            return await fetch_word_by_word(
+                surah,
+                ayah,
+                http_client=active_http,
+                cache=cache,
+                quran_com_base=active_settings.quran_com_api_base,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:

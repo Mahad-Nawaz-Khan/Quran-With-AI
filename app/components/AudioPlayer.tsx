@@ -23,7 +23,6 @@ interface LoopRange {
 interface AudioPlayerProps {
   audioUrl?: string;
   surahName?: string;
-  surahNumber?: number;
   ayahNumber?: number;
   totalAyahs?: number;
   selectedReciter?: string;
@@ -185,14 +184,14 @@ function AudioTransportControls({
   onPrevious,
   onTogglePlay,
   onNext,
-}: {
+}: Readonly<{
   firstDisabled: boolean;
   lastDisabled: boolean;
   playingState: 'playing' | 'paused';
   onPrevious?: () => void;
   onTogglePlay: () => void;
   onNext?: () => void;
-}) {
+}>) {
   const isPlaying = playingState === 'playing';
   return (
     <div className="flex items-center justify-center gap-1.5 shrink-0">
@@ -232,11 +231,11 @@ function AudioSeekBar({
   progress,
   duration,
   onSeek,
-}: {
+}: Readonly<{
   progress: number;
   duration: number;
   onSeek: (seconds: number) => void;
-}) {
+}>) {
   return (
     <div className="flex-1 min-w-[160px] flex items-center gap-2">
       <span className="text-[11px] font-mono text-[var(--text-muted)] min-w-[32px] text-center">
@@ -270,7 +269,7 @@ function AudioLoopAndSpeedControls({
   onLoopEndChange,
   onSpeedChange,
   onReciterChange,
-}: {
+}: Readonly<{
   repeatMode: 'on' | 'off';
   loopStart: number;
   loopEnd: number;
@@ -282,7 +281,7 @@ function AudioLoopAndSpeedControls({
   onLoopEndChange: (val: number) => void;
   onSpeedChange: (raw: string) => void;
   onReciterChange?: (id: string) => void;
-}) {
+}>) {
   const isRepeat = repeatMode === 'on';
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -366,12 +365,12 @@ function AudioVolumeControl({
   volume,
   onToggleMute,
   onVolumeChange,
-}: {
+}: Readonly<{
   muteState: 'muted' | 'unmuted';
   volume: number;
   onToggleMute: () => void;
   onVolumeChange: (val: number) => void;
-}) {
+}>) {
   const isMuted = muteState === 'muted';
   return (
     <div className="flex items-center gap-1.5 shrink-0">
@@ -415,7 +414,7 @@ export default function AudioPlayer({
   onPlayingChange,
   loopRange,
   onSetLoopRange,
-}: AudioPlayerProps) {
+}: Readonly<AudioPlayerProps>) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const playPromiseRef = useRef<Promise<void> | null>(null);
 
@@ -539,7 +538,9 @@ export default function AudioPlayer({
           setPlaybackError('Failed to load recitation audio.');
           setIsPlaying(false);
         }}
-      />
+      >
+        <track kind="captions" />
+      </audio>
 
       {playbackError && (
         <div

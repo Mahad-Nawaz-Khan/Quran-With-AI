@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import unicodedata
@@ -22,6 +23,12 @@ from backend.quran_metadata import (
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TRANSLATION_EDITION = "en.sahih"
+_UNVERIFIED_CITATION_PLACEHOLDER = "[unverified citation removed]"
+_UNVERIFIED_ATTRIBUTION_REFUSAL = (
+    "I cannot verify the claimed hadith or scholarly attribution from retrieved sources."
+)
+
 _EDITION_RE = re.compile(r"^[a-z]{2}\.[a-z0-9-]+$")
 _URL_RE = re.compile(r"https?://[^\s\)\]>\"']+")
 _DELIMITER_RE = re.compile(
@@ -33,9 +40,7 @@ _FAKE_FOOTER_RE = re.compile(
     r"\[Al-Quran Cloud API\s*[—–-]\s*Sahih International Translation\]\s*",
     re.IGNORECASE,
 )
-_ARABIC_SPAN_RE = re.compile(
-    r"[\u0600-\u06FF][\u0600-\u06FF\s\u064B-\u065F\u0670\u06D6-\u06ED]{4,}"
-)
+_ARABIC_SPAN_RE = re.compile(r"[\u0600-\u06FF][\u0600-\u06FF\s]{4,}")
 _ARABIC_DIACRITICS_RE = re.compile(r"[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]")
 _WHITESPACE_RE = re.compile(r"\s+")
 _PLACEHOLDER_RE = re.compile(r"\[unverified [^\]]+ removed\]")
@@ -246,7 +251,9 @@ class GroundingContext:
 
     surah_number: int | None = None
     ayah_number: int | None = None
-    requested_editions: list[str] = field(default_factory=lambda: ["en.sahih"])
+    requested_editions: list[str] = field(
+        default_factory=lambda: [DEFAULT_TRANSLATION_EDITION]
+    )
     is_search: bool = False
     user_query: str = ""
 
@@ -330,7 +337,7 @@ def validate_request_references(
 def sanitize_translation_editions(editions: list[str] | None) -> list[str]:
     """Validate and bound requested translation edition identifiers."""
     if not editions:
-        return ["en.sahih"]
+        return [DEFAULT_TRANSLATION_EDITION]
     cleaned: list[str] = []
     for raw in editions:
         candidate = raw.strip().lower()
@@ -338,7 +345,7 @@ def sanitize_translation_editions(editions: list[str] | None) -> list[str]:
             cleaned.append(candidate)
         if len(cleaned) >= 3:
             break
-    return cleaned if cleaned else ["en.sahih"]
+    return cleaned if cleaned else [DEFAULT_TRANSLATION_EDITION]
 
 
 def _detect_client_mismatch(
@@ -370,15 +377,15 @@ async def prefetch_canonical_verse(
     ctx.requested_editions = editions
 
     try:
-        payload = await fetch_ayah_editions(
-            surah_number,
-            ayah_number,
-            editions=("quran-uthmani", *editions),
-            http_client=ctx.http_client,
-            cache=ctx.cache,
-            base_url=ctx.alquran_api_base,
-            timeout=ctx.http_timeout,
-        )
+        async with asyncio.timeout(ctx.http_timeout):
+            payload = await fetch_ayah_editions(
+                surah_number,
+                ayah_number,
+                editions=("quran-uthmani", *editions),
+                http_client=ctx.http_client,
+                cache=ctx.cache,
+                base_url=ctx.alquran_api_base,
+            )
     except Exception as exc:
         logger.warning("Canonical verse prefetch failed for %s:%s: %s", surah_number, ayah_number, exc)
         return False, "Unable to retrieve verified Quran text from authoritative sources."
@@ -470,15 +477,15 @@ async def prefetch_search_references(
     ctx.requested_editions = editions
     for s_num, a_num in refs[:3]:
         try:
-            payload = await fetch_ayah_editions(
-                s_num,
-                a_num,
-                editions=("quran-uthmani", *editions),
-                http_client=ctx.http_client,
-                cache=ctx.cache,
-                base_url=ctx.alquran_api_base,
-                timeout=ctx.http_timeout,
-            )
+            async with asyncio.timeout(ctx.http_timeout):
+                payload = await fetch_ayah_editions(
+                    s_num,
+                    a_num,
+                    editions=("quran-uthmani", *editions),
+                    http_client=ctx.http_client,
+                    cache=ctx.cache,
+                    base_url=ctx.alquran_api_base,
+                )
             tr_map = {t["edition"]: t["text"] for t in payload.get("translations", [])}
             ctx.verified_ayahs[(s_num, a_num)] = VerifiedAyahRecord(
                 surah=s_num,
@@ -646,11 +653,10 @@ def _check_attributions(text: str, ctx: GroundingContext) -> tuple[list[str], bo
             _append_unique_str(attributions, m.group(0))
 
     no_evidence = _has_no_evidence(ctx)
-    ungrounded = False
-    if ctx.is_search and no_evidence and not _has_explicit_uncertainty(text):
-        ungrounded = True
-    elif ctx.search_unavailable and attributions:
-        ungrounded = True
+    ungrounded = (
+        (ctx.is_search and no_evidence and not _has_explicit_uncertainty(text))
+        or (ctx.search_unavailable and bool(attributions))
+    )
 
     return attributions, ungrounded
 
@@ -723,7 +729,7 @@ def _redact_matching_ranges(text: str, surah_s: str, target_ayah: int) -> str:
         start_a = int(match.group(1))
         end_a = int(match.group(2))
         if start_a <= target_ayah <= end_a:
-            return "[unverified citation removed]"
+            return _UNVERIFIED_CITATION_PLACEHOLDER
         return match.group(0)
 
     return range_re.sub(_replace_if_contains, text)
@@ -736,7 +742,7 @@ def _replace_citation(text: str, ref: str) -> str:
             rf"\b(?:surah|sura|chapter)\s+{re.escape(surah_s)}\b(?!\d)",
             re.IGNORECASE,
         )
-        return mention_re.sub("[unverified citation removed]", text)
+        return mention_re.sub(_UNVERIFIED_CITATION_PLACEHOLDER, text)
 
     surah_s, ayah_s = ref.split(":", 1)
     redacted = _redact_matching_ranges(text, surah_s, int(ayah_s))
@@ -744,7 +750,7 @@ def _replace_citation(text: str, ref: str) -> str:
         rf"(?:\b(?:surah|sura|chapter)\s+)?\b{re.escape(surah_s)}\s*:\s*{re.escape(ayah_s)}\b(?!\d)",
         re.IGNORECASE,
     )
-    redacted = colon_re.sub("[unverified citation removed]", redacted)
+    redacted = colon_re.sub(_UNVERIFIED_CITATION_PLACEHOLDER, redacted)
 
     word_range_re = re.compile(
         rf"\b(?:surah|sura|chapter)\s+{re.escape(surah_s)}\s*,?\s*(?:ayahs?|ayat|verses?)\s+(\d{{1,4}})\s*[-–]\s*(\d{{1,4}})\b",
@@ -755,7 +761,7 @@ def _replace_citation(text: str, ref: str) -> str:
         start_a = int(match.group(1))
         end_a = int(match.group(2))
         if start_a <= int(ayah_s) <= end_a:
-            return "[unverified citation removed]"
+            return _UNVERIFIED_CITATION_PLACEHOLDER
         return match.group(0)
 
     redacted = word_range_re.sub(_replace_word_range, redacted)
@@ -764,7 +770,7 @@ def _replace_citation(text: str, ref: str) -> str:
         rf"\b(?:surah|sura|chapter)\s+{re.escape(surah_s)}\s*,?\s*(?:ayahs?|ayat|verses?)\s+{re.escape(ayah_s)}\b(?!\d)",
         re.IGNORECASE,
     )
-    return word_re.sub("[unverified citation removed]", redacted)
+    return word_re.sub(_UNVERIFIED_CITATION_PLACEHOLDER, redacted)
 
 
 def _split_into_sentences(text: str) -> list[str]:
@@ -967,7 +973,7 @@ def _remediate_search_uncertainty(
         return None
     if _has_unverified_specific_hadith(ctx):
         return (
-            "I cannot verify the claimed hadith or scholarly attribution from retrieved sources.",
+            _UNVERIFIED_ATTRIBUTION_REFUSAL,
             True,
             True,
         )
@@ -975,7 +981,7 @@ def _remediate_search_uncertainty(
         msg = (
             cleaned.strip()
             if check.passed and cleaned.strip()
-            else "I cannot verify the claimed hadith or scholarly attribution from retrieved sources."
+            else _UNVERIFIED_ATTRIBUTION_REFUSAL
         )
         return msg, True, True
     return None
@@ -1014,7 +1020,7 @@ def remediate_response(
     non_placeholder = _PLACEHOLDER_RE.sub("", cleaned).strip(" \t\r\n.,;:!?-*")
     if not cleaned.strip() or (check.unverified_attributions and not non_placeholder and ctx.canonical_verse is None):
         return (
-            "I cannot verify the claimed hadith or scholarly attribution from retrieved sources.",
+            _UNVERIFIED_ATTRIBUTION_REFUSAL,
             True,
             True,
         )

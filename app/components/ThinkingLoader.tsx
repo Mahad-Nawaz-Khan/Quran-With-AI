@@ -13,7 +13,7 @@ interface ThinkingLoaderProps {
   status?: string;
 }
 
-export default function ThinkingLoader({ status }: ThinkingLoaderProps) {
+export default function ThinkingLoader({ status }: Readonly<ThinkingLoaderProps>) {
   const [phraseIndex, setPhraseIndex] = useState(0);
 
   useEffect(() => {

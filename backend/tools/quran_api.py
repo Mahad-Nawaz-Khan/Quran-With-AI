@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import functools
-import json
 import logging
 import re
 from typing import Any
@@ -24,6 +23,9 @@ from backend.quran_metadata import (
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_TRANSLATION_EDITION = "en.sahih"
+DEFAULT_ALQURAN_API_BASE = "https://api.alquran.cloud/v1"
 
 _EDITION_SAFE_RE = re.compile(r"^[a-z0-9.-]+$")
 _SEARCH_STRIP_RE = re.compile(r"[/?#\x00-\x1f]")
@@ -109,20 +111,19 @@ def _decode_json_response(resp: httpx.Response) -> tuple[int, Any]:
         return resp.status_code, None
     try:
         return resp.status_code, resp.json()
-    except (json.JSONDecodeError, httpx.DecodingError, ValueError) as exc:
+    except (httpx.DecodingError, ValueError) as exc:
         raise RuntimeError("Upstream Quran service returned malformed JSON.") from exc
 
 
 async def _fetch_json(
     url: str,
     http_client: httpx.AsyncClient | None = None,
-    timeout: float = 12.0,
 ) -> tuple[int, Any]:
     if http_client is not None:
         resp = await http_client.get(url)
         return _decode_json_response(resp)
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(timeout=12.0) as client:
         resp = await client.get(url)
         return _decode_json_response(resp)
 
@@ -199,9 +200,8 @@ async def _load_ayah_editions(
     ayah: int,
     url: str,
     http_client: httpx.AsyncClient | None,
-    timeout: float,
 ) -> dict[str, Any]:
-    status, payload = await _fetch_json(url, http_client=http_client, timeout=timeout)
+    status, payload = await _fetch_json(url, http_client=http_client)
     if status != 200 or not isinstance(payload, dict) or payload.get("code") != 200:
         raise RuntimeError(f"Al-Quran Cloud returned status {status} for {surah}:{ayah}")
     return _parse_ayah_editions_payload(surah, ayah, url, payload)
@@ -210,11 +210,10 @@ async def _load_ayah_editions(
 async def fetch_ayah_editions(
     surah: int,
     ayah: int,
-    editions: tuple[str, ...] = ("quran-uthmani", "en.sahih"),
+    editions: tuple[str, ...] = ("quran-uthmani", DEFAULT_TRANSLATION_EDITION),
     http_client: httpx.AsyncClient | None = None,
     cache: TTLCache | None = None,
-    base_url: str = "https://api.alquran.cloud/v1",
-    timeout: float = 12.0,
+    base_url: str = DEFAULT_ALQURAN_API_BASE,
 ) -> dict[str, Any]:
     """Fetch canonical Arabic and requested translation editions for a single ayah."""
     ok, err = validate_reference(surah, ayah)
@@ -224,11 +223,11 @@ async def fetch_ayah_editions(
     requested = _sanitize_edition_list(editions)
     translation_eds = [e for e in requested if e != "quran-uthmani"][:3]
     if not translation_eds:
-        translation_eds = ["en.sahih"]
+        translation_eds = [DEFAULT_TRANSLATION_EDITION]
     editions_param = ",".join(["quran-uthmani", *translation_eds])
     url = f"{base_url.rstrip('/')}/ayah/{surah}:{ayah}/editions/{editions_param}"
     cache_key = f"ayah:{surah}:{ayah}:{editions_param}"
-    loader = functools.partial(_load_ayah_editions, surah, ayah, url, http_client, timeout)
+    loader = functools.partial(_load_ayah_editions, surah, ayah, url, http_client)
 
     if cache is not None:
         return await cache.get_or_set(cache_key, loader, ttl=3600)
@@ -344,9 +343,8 @@ async def _load_surah_editions(
     clean_translations: list[str],
     clean_reciter: str,
     http_client: httpx.AsyncClient | None,
-    timeout: float,
 ) -> dict[str, Any]:
-    status, payload = await _fetch_json(url, http_client=http_client, timeout=timeout)
+    status, payload = await _fetch_json(url, http_client=http_client)
     if status != 200 or not isinstance(payload, dict) or payload.get("code") != 200:
         raise RuntimeError(f"Al-Quran Cloud returned status {status} for surah {surah}")
 
@@ -374,12 +372,11 @@ async def _load_surah_editions(
 
 async def fetch_surah_editions(
     surah: int,
-    translations: tuple[str, ...] = ("en.sahih",),
+    translations: tuple[str, ...] = (DEFAULT_TRANSLATION_EDITION,),
     reciter: str = "ar.alafasy",
     http_client: httpx.AsyncClient | None = None,
     cache: TTLCache | None = None,
-    base_url: str = "https://api.alquran.cloud/v1",
-    timeout: float = 12.0,
+    base_url: str = DEFAULT_ALQURAN_API_BASE,
 ) -> dict[str, Any]:
     """Fetch full Surah with canonical Arabic, up to 3 translations, and optional audio."""
     ok, err = validate_reference(surah, None)
@@ -388,7 +385,7 @@ async def fetch_surah_editions(
 
     clean_translations = [e for e in _sanitize_edition_list(translations) if e != "quran-uthmani"][:3]
     if not clean_translations:
-        clean_translations = ["en.sahih"]
+        clean_translations = [DEFAULT_TRANSLATION_EDITION]
 
     clean_reciter = reciter.strip().lower() if reciter else ""
     if clean_reciter and not _EDITION_SAFE_RE.match(clean_reciter):
@@ -407,7 +404,6 @@ async def fetch_surah_editions(
         clean_translations,
         clean_reciter,
         http_client,
-        timeout,
     )
 
     if cache is not None:
@@ -419,11 +415,10 @@ async def fetch_ayah_range(
     surah: int,
     start_ayah: int,
     end_ayah: int,
-    edition: str = "en.sahih",
+    edition: str = DEFAULT_TRANSLATION_EDITION,
     http_client: httpx.AsyncClient | None = None,
     cache: TTLCache | None = None,
-    base_url: str = "https://api.alquran.cloud/v1",
-    timeout: float = 12.0,
+    base_url: str = DEFAULT_ALQURAN_API_BASE,
 ) -> dict[str, Any]:
     """Fetch a bounded slice of ayahs (`<= 20`) from a Surah."""
     ok_start, err_start = validate_reference(surah, start_ayah)
@@ -439,7 +434,7 @@ async def fetch_ayah_range(
 
     clean_edition = edition.strip().lower()
     if not _EDITION_SAFE_RE.match(clean_edition) or clean_edition == "quran-uthmani":
-        clean_edition = "en.sahih"
+        clean_edition = DEFAULT_TRANSLATION_EDITION
 
     surah_data = await fetch_surah_editions(
         surah,
@@ -448,7 +443,6 @@ async def fetch_ayah_range(
         http_client=http_client,
         cache=cache,
         base_url=base_url,
-        timeout=timeout,
     )
     sliced = [
         a
@@ -496,7 +490,6 @@ async def _fetch_direct_ref_matches(
     http_client: httpx.AsyncClient | None,
     cache: TTLCache | None,
     base_url: str,
-    timeout: float,
 ) -> tuple[list[dict[str, Any]], set[tuple[int, int]]]:
     ayah_matches: list[dict[str, Any]] = []
     seen_refs: set[tuple[int, int]] = set()
@@ -508,7 +501,6 @@ async def _fetch_direct_ref_matches(
             http_client=http_client,
             cache=cache,
             base_url=base_url,
-            timeout=timeout,
         )
         seen_refs.add((s_ref, a_ref))
         ayah_matches.append(
@@ -576,13 +568,12 @@ async def _fetch_raw_search_payload(
     cache_key: str,
     http_client: httpx.AsyncClient | None,
     cache: TTLCache | None,
-    timeout: float,
 ) -> tuple[int, Any]:
     if cache is not None:
         found, cached = await cache.get(cache_key)
         if found:
             return 200, cached
-    status, payload = await _fetch_json(search_url, http_client=http_client, timeout=timeout)
+    status, payload = await _fetch_json(search_url, http_client=http_client)
     if cache is not None and status == 200 and isinstance(payload, dict) and payload.get("code") == 200:
         await cache.set(cache_key, payload, ttl=600)
     return status, payload
@@ -596,11 +587,10 @@ async def _load_search_results(
     http_client: httpx.AsyncClient | None,
     cache: TTLCache | None,
     base_url: str,
-    timeout: float,
 ) -> dict[str, Any]:
     surah_matches = _format_surah_matches(cleaned_q)
     ayah_matches, seen_refs = await _fetch_direct_ref_matches(
-        refs, clean_edition, http_client, cache, base_url, timeout
+        refs, clean_edition, http_client, cache, base_url
     )
     total_count = len(ayah_matches)
     url_safe_q = " ".join(_SEARCH_STRIP_RE.sub(" ", cleaned_q).split())
@@ -610,7 +600,7 @@ async def _load_search_results(
         search_url = f"{base_url.rstrip('/')}/search/{encoded_q}/all/{clean_edition}"
         raw_cache_key = f"rawsearch:{clean_edition}:{url_safe_q.lower()}"
         status, payload = await _fetch_raw_search_payload(
-            search_url, raw_cache_key, http_client, cache, timeout
+            search_url, raw_cache_key, http_client, cache
         )
         if status == 200 and isinstance(payload, dict) and payload.get("code") == 200:
             api_count = _append_keyword_matches(
@@ -631,12 +621,11 @@ async def _load_search_results(
 
 async def search_quran_text(
     query: str,
-    edition: str = "en.sahih",
+    edition: str = DEFAULT_TRANSLATION_EDITION,
     limit: int = 40,
     http_client: httpx.AsyncClient | None = None,
     cache: TTLCache | None = None,
-    base_url: str = "https://api.alquran.cloud/v1",
-    timeout: float = 12.0,
+    base_url: str = DEFAULT_ALQURAN_API_BASE,
 ) -> dict[str, Any]:
     """Search Surahs locally and Quran verses via Al-Quran Cloud (mapping 404 -> empty)."""
     cleaned_q = " ".join(query.strip().split())
@@ -645,7 +634,7 @@ async def search_quran_text(
 
     clean_edition = edition.strip().lower()
     if not _EDITION_SAFE_RE.match(clean_edition):
-        clean_edition = "en.sahih"
+        clean_edition = DEFAULT_TRANSLATION_EDITION
     bounded_limit = max(1, min(limit, 200))
 
     refs = extract_references(cleaned_q)
@@ -670,7 +659,6 @@ async def search_quran_text(
         http_client,
         cache,
         base_url,
-        timeout,
     )
     if cache is not None:
         return await cache.get_or_set(cache_key, loader, ttl=600)
@@ -703,9 +691,8 @@ async def _load_word_by_word(
     ayah: int,
     url: str,
     http_client: httpx.AsyncClient | None,
-    timeout: float,
 ) -> dict[str, Any]:
-    status, payload = await _fetch_json(url, http_client=http_client, timeout=timeout)
+    status, payload = await _fetch_json(url, http_client=http_client)
     if status != 200 or not isinstance(payload, dict) or "verse" not in payload:
         raise RuntimeError(f"Quran.com WBW returned status {status} for {surah}:{ayah}")
 
@@ -724,7 +711,6 @@ async def fetch_word_by_word(
     http_client: httpx.AsyncClient | None = None,
     cache: TTLCache | None = None,
     quran_com_base: str = "https://api.quran.com/api/v4",
-    timeout: float = 12.0,
 ) -> dict[str, Any]:
     """Fetch Word-by-Word breakdown from Quran.com v4, dropping `end` markers."""
     ok, err = validate_reference(surah, ayah)
@@ -736,7 +722,7 @@ async def fetch_word_by_word(
         "?words=true&word_fields=text_uthmani,transliteration,translation"
     )
     cache_key = f"wbw:{surah}:{ayah}"
-    loader = functools.partial(_load_word_by_word, surah, ayah, url, http_client, timeout)
+    loader = functools.partial(_load_word_by_word, surah, ayah, url, http_client)
 
     if cache is not None:
         return await cache.get_or_set(cache_key, loader, ttl=3600)
@@ -772,7 +758,7 @@ async def get_quran_ayah(
     ctx: RunContextWrapper[GroundingContext],
     surah_number: int,
     ayah_number: int,
-    edition: str = "en.sahih",
+    edition: str = DEFAULT_TRANSLATION_EDITION,
 ) -> str:
     """Fetch canonical Arabic and translation for a single Quranic ayah."""
     gctx = ctx.context
@@ -783,15 +769,15 @@ async def get_quran_ayah(
         return f"INVALID_REFERENCE: {err}"
 
     try:
-        data = await fetch_ayah_editions(
-            surah_number,
-            ayah_number,
-            editions=("quran-uthmani", edition),
-            http_client=gctx.http_client,
-            cache=gctx.cache,
-            base_url=gctx.alquran_api_base,
-            timeout=gctx.http_timeout,
-        )
+        async with asyncio.timeout(gctx.http_timeout):
+            data = await fetch_ayah_editions(
+                surah_number,
+                ayah_number,
+                editions=("quran-uthmani", edition),
+                http_client=gctx.http_client,
+                cache=gctx.cache,
+                base_url=gctx.alquran_api_base,
+            )
     except Exception as exc:
         logger.warning("get_quran_ayah error for %s:%s: %s", surah_number, ayah_number, exc)
         return f"QURAN_API_UNAVAILABLE: Could not fetch {surah_number}:{ayah_number}."
@@ -821,23 +807,23 @@ async def get_quran_range(
     surah_number: int,
     start_ayah: int,
     end_ayah: int,
-    edition: str = "en.sahih",
+    edition: str = DEFAULT_TRANSLATION_EDITION,
 ) -> str:
     """Fetch canonical Arabic and translation for a range of ayahs (max 20) in a Surah."""
     gctx = ctx.context
     gctx.tool_calls.append(f"get_quran_range:{surah_number}:{start_ayah}-{end_ayah}")
 
     try:
-        data = await fetch_ayah_range(
-            surah_number,
-            start_ayah,
-            end_ayah,
-            edition=edition,
-            http_client=gctx.http_client,
-            cache=gctx.cache,
-            base_url=gctx.alquran_api_base,
-            timeout=gctx.http_timeout,
-        )
+        async with asyncio.timeout(gctx.http_timeout):
+            data = await fetch_ayah_range(
+                surah_number,
+                start_ayah,
+                end_ayah,
+                edition=edition,
+                http_client=gctx.http_client,
+                cache=gctx.cache,
+                base_url=gctx.alquran_api_base,
+            )
     except ValueError as val_err:
         return f"INVALID_REFERENCE: {val_err}"
     except Exception as exc:
@@ -881,15 +867,15 @@ async def _resolve_search_match(
     s_num = int(match["surahNumber"])
     a_num = int(match["ayahNumber"])
     try:
-        full = await fetch_ayah_editions(
-            s_num,
-            a_num,
-            editions=("quran-uthmani", edition),
-            http_client=gctx.http_client,
-            cache=gctx.cache,
-            base_url=gctx.alquran_api_base,
-            timeout=gctx.http_timeout,
-        )
+        async with asyncio.timeout(gctx.http_timeout):
+            full = await fetch_ayah_editions(
+                s_num,
+                a_num,
+                editions=("quran-uthmani", edition),
+                http_client=gctx.http_client,
+                cache=gctx.cache,
+                base_url=gctx.alquran_api_base,
+            )
         return full["arabic"], full["primaryTranslation"], full["sourceUrl"]
     except Exception:
         return "", translation, source_url
@@ -918,22 +904,22 @@ async def _resolve_ranked_match(
 async def search_quran(
     ctx: RunContextWrapper[GroundingContext],
     query: str,
-    edition: str = "en.sahih",
+    edition: str = DEFAULT_TRANSLATION_EDITION,
 ) -> str:
     """Search the Quran text by keyword or Surah name and return verified verse matches."""
     gctx = ctx.context
     gctx.tool_calls.append(f"search_quran:{query[:60]}")
 
     try:
-        data = await search_quran_text(
-            query,
-            edition=edition,
-            limit=200,
-            http_client=gctx.http_client,
-            cache=gctx.cache,
-            base_url=gctx.alquran_api_base,
-            timeout=gctx.http_timeout,
-        )
+        async with asyncio.timeout(gctx.http_timeout):
+            data = await search_quran_text(
+                query,
+                edition=edition,
+                limit=200,
+                http_client=gctx.http_client,
+                cache=gctx.cache,
+                base_url=gctx.alquran_api_base,
+            )
     except ValueError as val_err:
         return f"INVALID_QUERY: {val_err}"
     except Exception as exc:

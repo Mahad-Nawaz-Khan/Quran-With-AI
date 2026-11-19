@@ -100,7 +100,23 @@ function useExplanationStream(params: {
   return { explanation, sources, isStreaming, statusMessage, errorMessage };
 }
 
-function ExplanationSourcesList({ sources }: { sources: readonly GroundingSource[] }) {
+function MarkdownCitationLink({
+  href,
+  children,
+}: Readonly<React.AnchorHTMLAttributes<HTMLAnchorElement>>) {
+  return (
+    <Link
+      href={href ?? '#'}
+      className="text-[var(--primary)] font-medium underline underline-offset-2 hover:opacity-80"
+    >
+      {children}
+    </Link>
+  );
+}
+
+const MARKDOWN_COMPONENTS = { a: MarkdownCitationLink };
+
+function ExplanationSourcesList({ sources }: Readonly<{ sources: readonly GroundingSource[] }>) {
   if (sources.length === 0) return null;
   return (
     <div className="pt-4 border-t border-[var(--border)]">
@@ -135,14 +151,14 @@ function ExplanationBody({
   errorMessage,
   sources,
   onRetry,
-}: {
+}: Readonly<{
   explanation: string;
   streamState: 'streaming' | 'idle';
   statusMessage: string;
   errorMessage: string | null;
   sources: readonly GroundingSource[];
   onRetry: () => void;
-}) {
+}>) {
   if (errorMessage) {
     return (
       <div
@@ -174,18 +190,7 @@ function ExplanationBody({
   return (
     <div className="space-y-4">
       <div className="markdown-body text-sm text-[var(--foreground)] leading-relaxed">
-        <ReactMarkdown
-          components={{
-            a: ({ href, children }) => (
-              <Link
-                href={href ?? '#'}
-                className="text-[var(--primary)] font-medium underline underline-offset-2 hover:opacity-80"
-              >
-                {children}
-              </Link>
-            ),
-          }}
-        >
+        <ReactMarkdown components={MARKDOWN_COMPONENTS}>
           {renderMarkdownWithCitations(explanation)}
         </ReactMarkdown>
       </div>
@@ -202,7 +207,7 @@ export default function ExplanationModal({
   surahName,
   arabicText,
   translationText,
-}: ExplanationModalProps) {
+}: Readonly<ExplanationModalProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copied, setCopied] = useState(false);
   const [retryCount, setRetryCount] = useState(0);

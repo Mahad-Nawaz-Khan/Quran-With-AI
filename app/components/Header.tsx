@@ -37,7 +37,7 @@ function SurahSwitcherDropdown({
   onToggle,
   onFilterChange,
   onSelect,
-}: SurahSwitcherProps) {
+}: Readonly<SurahSwitcherProps>) {
   const displayName = surahName ?? SURAHS[surahNumber - 1]?.englishName ?? '';
   return (
     <div className="relative">
@@ -92,7 +92,12 @@ interface LanguageMenuProps {
   onSelect: (code: AppLanguageCode) => void;
 }
 
-function LanguageSwitcherMenu({ language, isOpen, onToggle, onSelect }: LanguageMenuProps) {
+function LanguageSwitcherMenu({
+  language,
+  isOpen,
+  onToggle,
+  onSelect,
+}: Readonly<LanguageMenuProps>) {
   return (
     <div className="relative">
       <button
@@ -139,7 +144,7 @@ function filterSurahsByQuery(query: string): SurahMeta[] {
   ));
 }
 
-export default function Header({ surahNumber, surahName, pageInfo }: HeaderProps) {
+export default function Header({ surahNumber, surahName, pageInfo }: Readonly<HeaderProps>) {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const t = useMemo(() => getTranslationDictionary(language), [language]);

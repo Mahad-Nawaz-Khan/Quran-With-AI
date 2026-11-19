@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import html
-import json
 import logging
 import re
 from typing import Any
@@ -132,20 +132,19 @@ def _decode_json_response(resp: httpx.Response) -> tuple[int, Any]:
         return resp.status_code, None
     try:
         return resp.status_code, resp.json()
-    except (json.JSONDecodeError, httpx.DecodingError, ValueError) as exc:
+    except (httpx.DecodingError, ValueError) as exc:
         raise RuntimeError("Upstream tafsir service returned malformed JSON.") from exc
 
 
 async def _get_json(
     url: str,
     http_client: httpx.AsyncClient | None = None,
-    timeout: float = 12.0,
 ) -> tuple[int, Any]:
     if http_client is not None:
         resp = await http_client.get(url)
         return _decode_json_response(resp)
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    async with httpx.AsyncClient(timeout=12.0) as client:
         resp = await client.get(url)
         return _decode_json_response(resp)
 
@@ -157,14 +156,13 @@ async def _try_qurancom_tafsir(
     entry: dict[str, Any],
     http_client: httpx.AsyncClient | None,
     quran_com_base: str,
-    timeout: float,
 ) -> dict[str, Any] | None:
     qurancom_id = entry["qurancom_id"]
     if qurancom_id is None:
         return None
     q_url = f"{quran_com_base.rstrip('/')}/tafsirs/{qurancom_id}/by_ayah/{surah}:{ayah}"
     try:
-        status, payload = await _get_json(q_url, http_client=http_client, timeout=timeout)
+        status, payload = await _get_json(q_url, http_client=http_client)
     except Exception as exc:
         logger.warning("Quran.com tafsir primary failed (%s:%s): %s", surah, ayah, exc)
         return None
@@ -190,11 +188,10 @@ async def _try_spa5k_tafsir(
     canonical_slug: str,
     entry: dict[str, Any],
     http_client: httpx.AsyncClient | None,
-    timeout: float,
 ) -> dict[str, Any] | None:
     spa_slug = entry["spa5k_slug"]
     spa_url = f"https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/{spa_slug}/{surah}/{ayah}.json"
-    status, payload = await _get_json(spa_url, http_client=http_client, timeout=timeout)
+    status, payload = await _get_json(spa_url, http_client=http_client)
     if status != 200 or not isinstance(payload, dict):
         return None
     cleaned = clean_tafsir_html(str(payload.get("text") or ""))
@@ -217,15 +214,14 @@ async def _load_tafsir(
     entry: dict[str, Any],
     http_client: httpx.AsyncClient | None,
     quran_com_base: str,
-    timeout: float,
 ) -> dict[str, Any]:
     primary = await _try_qurancom_tafsir(
-        surah, ayah, canonical_slug, entry, http_client, quran_com_base, timeout
+        surah, ayah, canonical_slug, entry, http_client, quran_com_base
     )
     if primary is not None:
         return primary
     fallback = await _try_spa5k_tafsir(
-        surah, ayah, canonical_slug, entry, http_client, timeout
+        surah, ayah, canonical_slug, entry, http_client
     )
     if fallback is not None:
         return fallback
@@ -239,7 +235,6 @@ async def fetch_tafsir(
     http_client: httpx.AsyncClient | None = None,
     cache: TTLCache | None = None,
     quran_com_base: str = "https://api.quran.com/api/v4",
-    timeout: float = 12.0,
 ) -> dict[str, Any]:
     """Fetch classical tafsir with Quran.com v4 primary and spa5k CDN fallback."""
     ok, err = validate_reference(surah, ayah)
@@ -257,7 +252,6 @@ async def fetch_tafsir(
         entry,
         http_client,
         quran_com_base,
-        timeout,
     )
     if cache is not None:
         return await cache.get_or_set(cache_key, loader, ttl=3600)
@@ -280,15 +274,15 @@ async def get_tafsir(
         return f"INVALID_REFERENCE: {err}"
 
     try:
-        data = await fetch_tafsir(
-            surah_number,
-            ayah_number,
-            slug=tafsir_slug,
-            http_client=gctx.http_client,
-            cache=gctx.cache,
-            quran_com_base=gctx.quran_com_api_base,
-            timeout=gctx.http_timeout,
-        )
+        async with asyncio.timeout(gctx.http_timeout):
+            data = await fetch_tafsir(
+                surah_number,
+                ayah_number,
+                slug=tafsir_slug,
+                http_client=gctx.http_client,
+                cache=gctx.cache,
+                quran_com_base=gctx.quran_com_api_base,
+            )
     except ValueError as val_err:
         return f"INVALID_TAFSIR_SLUG: {val_err}"
     except Exception as exc:

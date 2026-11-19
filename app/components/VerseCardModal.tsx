@@ -52,7 +52,7 @@ function NotesTabPanel({
   onRemoveTag,
   onSaveNote,
   onDeleteNote,
-}: NotesTabPanelProps) {
+}: Readonly<NotesTabPanelProps>) {
   return (
     <div className="space-y-4">
       <div>
@@ -171,7 +171,7 @@ function CardTabPanel({
   translationText,
   copied,
   onCopyCard,
-}: CardTabPanelProps) {
+}: Readonly<CardTabPanelProps>) {
   return (
     <div className="space-y-4">
       <div
@@ -234,7 +234,7 @@ function CardTabPanel({
   );
 }
 
-interface InnerProps extends VerseCardModalProps {
+interface InnerProps extends Omit<VerseCardModalProps, 'isOpen'> {
   existingNote?: StudyNote;
   onSave: (key: string, note: string, tags: string[]) => void;
   onDelete: (key: string) => void;
@@ -251,7 +251,7 @@ function VerseCardModalContent({
   existingNote,
   onSave,
   onDelete,
-}: InnerProps) {
+}: Readonly<InnerProps>) {
   const tagInputId = useId();
   const noteTextareaId = useId();
   const ayahKey = `${surahNumber}:${ayahNumber}`;
@@ -396,8 +396,16 @@ function VerseCardModalContent({
   );
 }
 
-export default function VerseCardModal(props: VerseCardModalProps) {
-  const { isOpen, onClose, surahNumber, ayahNumber, initialTab = 'notes' } = props;
+export default function VerseCardModal({
+  isOpen,
+  onClose,
+  surahNumber,
+  ayahNumber,
+  surahName,
+  arabicText,
+  translationText,
+  initialTab = 'notes',
+}: Readonly<VerseCardModalProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { notes, saveNote, deleteNote } = useStudyNotes();
   const ayahKey = `${surahNumber}:${ayahNumber}`;
@@ -433,7 +441,13 @@ export default function VerseCardModal(props: VerseCardModalProps) {
       {isOpen && (
         <VerseCardModalContent
           key={`${ayahKey}-${initialTab}`}
-          {...props}
+          onClose={onClose}
+          surahNumber={surahNumber}
+          ayahNumber={ayahNumber}
+          surahName={surahName}
+          arabicText={arabicText}
+          translationText={translationText}
+          initialTab={initialTab}
           existingNote={existingNote}
           onSave={saveNote}
           onDelete={deleteNote}

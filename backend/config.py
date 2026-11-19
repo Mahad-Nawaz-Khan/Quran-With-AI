@@ -17,6 +17,7 @@ DEFAULT_CORS_ORIGINS: tuple[str, ...] = (
     "http://127.0.0.1:3000",
 )
 
+DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_OPENROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free"
 RETIRED_OPENROUTER_MODELS: frozenset[str] = frozenset({
     "meta-llama/llama-3.3-70b-instruct:free",
@@ -44,7 +45,7 @@ class Settings:
     """Immutable application settings."""
 
     openrouter_api_key: str = ""
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_base_url: str = DEFAULT_OPENROUTER_BASE_URL
     openrouter_model: str = DEFAULT_OPENROUTER_MODEL
     tavily_api_key: str = ""
     cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
@@ -109,9 +110,9 @@ def load_settings(load_dotenv_file: bool = False) -> Settings:
     return Settings(
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "").strip(),
         openrouter_base_url=os.getenv(
-            "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+            "OPENROUTER_BASE_URL", DEFAULT_OPENROUTER_BASE_URL
         ).strip()
-        or "https://openrouter.ai/api/v1",
+        or DEFAULT_OPENROUTER_BASE_URL,
         openrouter_model=raw_model,
         tavily_api_key=os.getenv("TAVILY_API_KEY", "").strip(),
         cors_origins=parse_cors_origins(os.getenv("CORS_ORIGINS")),

@@ -130,13 +130,13 @@ function TafsirContentView({
   tafsirData,
   selectedSlug,
   onRetry,
-}: {
+}: Readonly<{
   loadState: 'loading' | 'ready';
   errorMessage: string | null;
   tafsirData: TafsirResponse | null;
   selectedSlug: string;
   onRetry: () => void;
-}) {
+}>) {
   if (loadState === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center py-10 space-y-2 text-[var(--text-muted)]">
@@ -197,7 +197,7 @@ export default function TafsirDrawer({
   surahName,
   arabicText,
   translationText,
-}: TafsirDrawerProps) {
+}: Readonly<TafsirDrawerProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [selectedSlug, setSelectedSlug] = useState<string>(DEFAULT_TAFSIR_SLUG);
   const [retryToken, setRetryToken] = useState(0);

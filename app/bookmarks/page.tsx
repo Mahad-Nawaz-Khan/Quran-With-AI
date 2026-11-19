@@ -19,10 +19,10 @@ type ActiveTab = 'surahs' | 'ayahs' | 'notes';
 function BookmarkedSurahsPanel({
   surahs,
   onToggleBookmark,
-}: {
+}: Readonly<{
   surahs: SurahMeta[];
   onToggleBookmark: (surahNumber: number) => void;
-}) {
+}>) {
   if (surahs.length === 0) {
     return (
       <div className="text-center py-16 bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl p-6">
@@ -58,10 +58,10 @@ function BookmarkedSurahsPanel({
 function BookmarkedAyahsPanel({
   bookmarks,
   onRemove,
-}: {
+}: Readonly<{
   bookmarks: BookmarkEntry[];
   onRemove: (key: string) => void;
-}) {
+}>) {
   if (bookmarks.length === 0) {
     return (
       <div className="text-center py-16 bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl p-6">
@@ -134,10 +134,10 @@ function parseNoteReference(key: string): { surahNumber: number; ayahNumber: num
 function StudyNotesPanel({
   notes,
   onDelete,
-}: {
+}: Readonly<{
   notes: Array<[string, StudyNote]>;
   onDelete: (key: string) => void;
-}) {
+}>) {
   if (notes.length === 0) {
     return (
       <div className="text-center py-16 bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl p-6">

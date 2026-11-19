@@ -74,11 +74,11 @@ function SurahInfoDialog({
   surahMeta,
   dialogState,
   onClose,
-}: {
+}: Readonly<{
   surahMeta: SurahMeta;
   dialogState: 'open' | 'closed';
   onClose: () => void;
-}) {
+}>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const isOpen = dialogState === 'open';
 
@@ -188,7 +188,7 @@ function SurahReaderToolbar({
   onToggleHifz,
   onToggleTajweed,
   onFontSizeChange,
-}: ReaderToolbarProps) {
+}: Readonly<ReaderToolbarProps>) {
   const toggleBtnBase = 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs transition-colors';
   const toggleActive = 'bg-[var(--primary)]/15 border-[var(--primary)] text-[var(--primary)] font-semibold';
   const toggleInactive = 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:text-[var(--foreground)]';
@@ -286,11 +286,11 @@ function SurahHeroSection({
   surahMeta,
   showBismillahBanner,
   isTajweedMode,
-}: {
+}: Readonly<{
   surahMeta: SurahMeta;
   showBismillahBanner: boolean;
   isTajweedMode: boolean;
-}) {
+}>) {
   return (
     <div className="pt-8 pb-4 text-center">
       <span className="px-3 py-1 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-full text-xs text-[var(--primary)] font-medium uppercase tracking-wider">
@@ -340,7 +340,7 @@ function SurahAyahsList({
   onTafsirAyah,
   onWordByWordAyah,
   onVerseCardAyah,
-}: {
+}: Readonly<{
   loading: boolean;
   ayahs: Ayah[];
   surahId: number;
@@ -359,7 +359,7 @@ function SurahAyahsList({
   onTafsirAyah: (ayah: Ayah) => void;
   onWordByWordAyah: (ayah: Ayah) => void;
   onVerseCardAyah: (ayah: Ayah, tab: 'notes' | 'card') => void;
-}) {
+}>) {
   if (loading && ayahs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-3">
@@ -405,10 +405,10 @@ function SurahAyahsList({
 function SurahFooterNav({
   prevSurah,
   nextSurah,
-}: {
+}: Readonly<{
   prevSurah: SurahMeta | null;
   nextSurah: SurahMeta | null;
-}) {
+}>) {
   return (
     <nav
       aria-label="Surah Footer Navigation"
@@ -544,7 +544,7 @@ function SurahReaderDialogs({
   onCloseTafsir,
   onCloseWbw,
   onCloseVerseCard,
-}: {
+}: Readonly<{
   surahId: number;
   surahMeta: SurahMeta;
   showSurahInfo: boolean;
@@ -557,7 +557,7 @@ function SurahReaderDialogs({
   onCloseTafsir: () => void;
   onCloseWbw: () => void;
   onCloseVerseCard: () => void;
-}) {
+}>) {
   return (
     <>
       <SurahInfoDialog
@@ -668,7 +668,10 @@ function useInitialReaderDeepLink(params: {
   }, [loading, ayahs, searchParams, onSelectIndex, onStartAutoplay]);
 }
 
-function SurahReaderContentInner({ surahId, surahMeta }: { surahId: number; surahMeta: SurahMeta }) {
+function SurahReaderContentInner({
+  surahId,
+  surahMeta,
+}: Readonly<{ surahId: number; surahMeta: SurahMeta }>) {
   const searchParams = useSearchParams();
 
   const [selectedTranslations, setSelectedTranslations] = usePersistentStore(translationsStore);
@@ -880,7 +883,6 @@ function SurahReaderContentInner({ surahId, surahMeta }: { surahId: number; sura
         <AudioPlayer
           audioUrl={currentAyah.audio}
           surahName={surahMeta.englishName}
-          surahNumber={surahId}
           ayahNumber={currentAyah.numberInSurah}
           totalAyahs={surahMeta.ayahCount}
           selectedReciter={selectedReciter}

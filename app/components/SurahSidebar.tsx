@@ -38,10 +38,10 @@ function closeSidebarOnMobile(onClose: () => void): void {
 function SidebarTabs({
   activeTab,
   onSelectTab,
-}: {
+}: Readonly<{
   activeTab: SidebarTab;
   onSelectTab: (tab: SidebarTab) => void;
-}) {
+}>) {
   const activeClass = 'bg-[var(--primary)] text-white shadow-sm';
   const inactiveClass = 'text-[var(--text-muted)] hover:text-[var(--foreground)]';
 
@@ -95,11 +95,11 @@ function SidebarSurahList({
   surahs,
   currentSurahId,
   onClose,
-}: {
+}: Readonly<{
   surahs: readonly SurahMeta[];
   currentSurahId: number;
   onClose: () => void;
-}) {
+}>) {
   if (surahs.length === 0) {
     return <p className="p-4 text-xs text-center text-[var(--text-muted)]">No matching surahs.</p>;
   }
@@ -146,10 +146,10 @@ function SidebarSurahList({
 function SidebarJuzList({
   juzList,
   onClose,
-}: {
+}: Readonly<{
   juzList: readonly JuzMeta[];
   onClose: () => void;
-}) {
+}>) {
   if (juzList.length === 0) {
     return <p className="p-4 text-xs text-center text-[var(--text-muted)]">No matching Juz.</p>;
   }
@@ -183,10 +183,10 @@ function SidebarJuzList({
 function SidebarPageList({
   pages,
   onClose,
-}: {
+}: Readonly<{
   pages: readonly PageNavItem[];
   onClose: () => void;
-}) {
+}>) {
   if (pages.length === 0) {
     return <p className="p-4 text-xs text-center text-[var(--text-muted)]">No matching page (1–604).</p>;
   }
@@ -216,7 +216,7 @@ export default function SurahSidebar({
   currentSurahId,
   isOpen,
   onClose,
-}: SurahSidebarProps) {
+}: Readonly<SurahSidebarProps>) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('surah');
   const [searchQuery, setSearchQuery] = useState('');
 

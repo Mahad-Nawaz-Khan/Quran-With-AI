@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
   fetchWithTimeout,
-  getBackendBaseUrl,
   isObjectRecord,
   parsePositiveIntParam,
 } from '@/app/api/_lib/backendProxy';
@@ -9,7 +8,6 @@ import { isValidSurah } from '@/lib/quran/surahMetadata';
 
 const ALQURAN_SURAH_BASE = 'https://api.alquran.cloud/v1/surah';
 const PUBLIC_TIMEOUT_MS = 12_000;
-const BACKEND_TIMEOUT_MS = 4_000;
 const CACHE_TTL_MS = 3_600_000;
 const MAX_CACHE_ENTRIES = 128;
 const EDITION_TOKEN_REGEX = /^[a-z0-9._-]{2,40}$/i;
@@ -45,28 +43,6 @@ function sanitizeEditionsParam(raw: string | null): string[] {
   return Array.from(new Set(merged)).slice(0, 8);
 }
 
-async function fetchBackendEditionsFallback(
-  surah: number,
-  editions: readonly string[],
-  signal?: AbortSignal
-): Promise<unknown> {
-  const reciter = editions.find((ed) => ed.startsWith('ar.') && ed !== 'ar.muyassar') ?? 'ar.alafasy';
-  const translationEditions = editions.filter(
-    (ed) => ed !== 'quran-uthmani' && ed !== reciter && ed !== 'quran-tajweed' && ed !== 'en.transliteration'
-  );
-  if (editions.includes('quran-tajweed') || editions.includes('en.transliteration')) {
-    return null;
-  }
-  const backendUrl = `${getBackendBaseUrl()}/quran/surah/${surah}?editions=${encodeURIComponent(
-    translationEditions.join(',') || 'en.sahih'
-  )}&reciter=${encodeURIComponent(reciter)}`;
-  const res = await fetchWithTimeout(backendUrl, { method: 'GET' }, BACKEND_TIMEOUT_MS, signal);
-  if (!res.ok) return null;
-  const json: unknown = await res.json();
-  if (!isObjectRecord(json) || !Array.isArray(json.ayahs)) return null;
-  return null;
-}
-
 export async function GET(
   req: Request,
   context: { params: Promise<{ surah: string }> }
@@ -93,7 +69,6 @@ export async function GET(
     const upstreamUrl = `${ALQURAN_SURAH_BASE}/${surahNumber}/editions/${editions.join(',')}`;
     const res = await fetchWithTimeout(upstreamUrl, { method: 'GET' }, PUBLIC_TIMEOUT_MS, req.signal);
     if (!res.ok) {
-      await fetchBackendEditionsFallback(surahNumber, editions, req.signal).catch(() => null);
       return NextResponse.json(
         { error: 'Unable to load surah recitation from upstream Quran service.' },
         { status: 502 }

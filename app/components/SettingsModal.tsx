@@ -33,7 +33,7 @@ function parsePlaybackSpeed(raw: number): PlaybackSpeed | null {
   return match ?? null;
 }
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose }: Readonly<SettingsModalProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();

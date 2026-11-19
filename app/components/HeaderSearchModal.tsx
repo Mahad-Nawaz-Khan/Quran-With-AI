@@ -83,10 +83,10 @@ function renderJumpIcon(icon: JumpDescriptor['icon']) {
 function JumpResultCard({
   descriptor,
   onNavigate,
-}: {
+}: Readonly<{
   descriptor: JumpDescriptor;
   onNavigate: (href: string) => void;
-}) {
+}>) {
   return (
     <div className="p-3 bg-[var(--surface-elevated)] rounded-xl border border-[var(--border)]">
       <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] block mb-1">
@@ -113,10 +113,10 @@ function JumpResultCard({
 function SurahMatchList({
   matches,
   onNavigate,
-}: {
+}: Readonly<{
   matches: SurahSearchMatch[];
   onNavigate: (href: string) => void;
-}) {
+}>) {
   return (
     <div className="pt-2">
       <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] px-2 block mb-1">
@@ -158,13 +158,13 @@ function SearchModalResults({
   jumpDescriptor,
   surahMatches,
   onNavigate,
-}: {
+}: Readonly<{
   query: string;
   intent: CommandIntent;
   jumpDescriptor: JumpDescriptor | null;
   surahMatches: SurahSearchMatch[];
   onNavigate: (href: string) => void;
-}) {
+}>) {
   return (
     <div className="max-h-[60vh] overflow-y-auto p-3 space-y-2">
       {jumpDescriptor && (
@@ -192,15 +192,15 @@ function SearchModalResults({
             <kbd className="px-1.5 py-0.5 bg-[var(--surface-elevated)] border border-[var(--border)] rounded text-xs text-[var(--foreground)]">
               2:255
             </kbd>
-            ,{' '}
+            {', '}
             <kbd className="px-1.5 py-0.5 bg-[var(--surface-elevated)] border border-[var(--border)] rounded text-xs text-[var(--foreground)]">
               Juz 30
             </kbd>
-            , or{' '}
+            {', or '}
             <kbd className="px-1.5 py-0.5 bg-[var(--surface-elevated)] border border-[var(--border)] rounded text-xs text-[var(--foreground)]">
               Page 604
             </kbd>
-            .
+            {'.'}
           </p>
           <p className="text-xs text-[var(--text-muted)] mt-1.5">
             Press{' '}
@@ -223,7 +223,7 @@ function SearchModalResults({
   );
 }
 
-export default function HeaderSearchModal({ isOpen, onClose }: HeaderSearchModalProps) {
+export default function HeaderSearchModal({ isOpen, onClose }: Readonly<HeaderSearchModalProps>) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

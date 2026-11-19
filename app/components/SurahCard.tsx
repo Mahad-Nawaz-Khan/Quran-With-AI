@@ -42,7 +42,11 @@ function getSurahTotalAyahs(surah: SurahCardData | SurahMeta): number {
   return 0;
 }
 
-export default function SurahCard({ surah, isBookmarked, onToggleBookmark }: SurahCardProps) {
+export default function SurahCard({
+  surah,
+  isBookmarked,
+  onToggleBookmark,
+}: Readonly<SurahCardProps>) {
   const router = useRouter();
 
   const handlePlayClick = (e: React.MouseEvent) => {

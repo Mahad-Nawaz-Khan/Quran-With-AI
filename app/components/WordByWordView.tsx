@@ -62,10 +62,10 @@ function useWordByWordData(params: {
 function WordTokenCard({
   word,
   onPlayAudio,
-}: {
+}: Readonly<{
   word: WordByWordToken;
   onPlayAudio: (audioUrl?: string | null) => void;
-}) {
+}>) {
   return (
     <div className="bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl p-3 flex flex-col items-center text-center min-w-[100px] sm:min-w-[120px] hover:border-[var(--primary)] transition-colors">
       <div className="flex items-center justify-between w-full mb-1">
@@ -113,13 +113,13 @@ function WordByWordBody({
   data,
   onRetry,
   onPlayAudio,
-}: {
+}: Readonly<{
   loadState: 'loading' | 'ready';
   errorMessage: string | null;
   data: WordByWordResponse | null;
   onRetry: () => void;
   onPlayAudio: (audioUrl?: string | null) => void;
-}) {
+}>) {
   if (loadState === 'loading') {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 animate-pulse">
@@ -182,7 +182,7 @@ export default function WordByWordView({
   surahNumber,
   ayahNumber,
   surahName,
-}: WordByWordViewProps) {
+}: Readonly<WordByWordViewProps>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [retryToken, setRetryToken] = useState(0);

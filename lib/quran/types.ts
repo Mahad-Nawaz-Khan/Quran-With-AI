@@ -1,7 +1,6 @@
 export type RevelationType = 'Meccan' | 'Medinan';
 export type TextDirection = 'ltr' | 'rtl';
 export type AppLanguageCode = 'en' | 'ar' | 'ur' | 'id' | 'tr';
-export type SupportedLanguage = AppLanguageCode;
 export type ThemeMode = 'dark' | 'light';
 export type PlaybackSpeed = 0.75 | 1 | 1.25 | 1.5;
 
@@ -63,7 +62,7 @@ export interface AlQuranSurahSummary {
   englishName: string;
   englishNameTranslation: string;
   numberOfAyahs: number;
-  revelationType: RevelationType | string;
+  revelationType: string;
 }
 
 export interface AlQuranEditionMeta {

@@ -83,7 +83,7 @@ function renderBannerIcon(icon: IntentBannerDescriptor['icon']) {
   return null;
 }
 
-function SearchIntentBanner({ intent }: { intent: CommandIntent }) {
+function SearchIntentBanner({ intent }: Readonly<{ intent: CommandIntent }>) {
   if (intent.kind === 'invalid_reference') {
     return (
       <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center gap-3 text-amber-500 text-sm">
@@ -120,7 +120,7 @@ function SearchIntentBanner({ intent }: { intent: CommandIntent }) {
   );
 }
 
-function SearchSurahMatchesPanel({ matches }: { matches: SurahSearchMatch[] }) {
+function SearchSurahMatchesPanel({ matches }: Readonly<{ matches: SurahSearchMatch[] }>) {
   return (
     <section>
       <h2 className="text-lg font-bold text-[var(--foreground)] mb-3">
@@ -160,11 +160,11 @@ function SearchAyahResultsPanel({
   matches,
   total,
   linkReferenceText,
-}: {
+}: Readonly<{
   matches: AyahSearchMatch[];
   total: number;
   linkReferenceText: 'include' | 'omit';
-}) {
+}>) {
   return (
     <section>
       <h2 className="text-lg font-bold text-[var(--foreground)] mb-3">
@@ -225,12 +225,12 @@ function SearchResultsView({
   error,
   searchResult,
   onRetry,
-}: {
+}: Readonly<{
   loading: boolean;
   error: string | null;
   searchResult: SearchResult | null;
   onRetry: () => void;
-}) {
+}>) {
   if (error && !loading) {
     return (
       <div
@@ -306,7 +306,7 @@ function SearchResultsView({
   );
 }
 
-function SearchContentInner({ initialQuery }: { initialQuery: string }) {
+function SearchContentInner({ initialQuery }: Readonly<{ initialQuery: string }>) {
   const router = useRouter();
   const [inputVal, setInputVal] = useState(initialQuery);
   const [loading, setLoading] = useState(Boolean(initialQuery.trim()));
@@ -339,7 +339,7 @@ function SearchContentInner({ initialQuery }: { initialQuery: string }) {
     if (!trimmed) return;
     let active = true;
     const controller = new AbortController();
-    void executeSearch(trimmed, { signal: controller.signal })
+    executeSearch(trimmed, { signal: controller.signal })
       .then((res) => {
         if (active) {
           setSearchResult(res);
@@ -366,7 +366,7 @@ function SearchContentInner({ initialQuery }: { initialQuery: string }) {
     const trimmed = inputVal.trim();
     if (trimmed) {
       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-      void runSearch(trimmed);
+      runSearch(trimmed).catch(() => {});
     }
   };
 
@@ -420,7 +420,9 @@ function SearchContentInner({ initialQuery }: { initialQuery: string }) {
         loading={loading}
         error={error}
         searchResult={searchResult}
-        onRetry={() => void runSearch(inputVal)}
+        onRetry={() => {
+          runSearch(inputVal).catch(() => {});
+        }}
       />
     </main>
   );

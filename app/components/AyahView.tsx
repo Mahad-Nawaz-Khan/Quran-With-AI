@@ -78,13 +78,13 @@ function ArabicScriptParagraph({
   scriptMode,
   blurClass,
   arabicFontSizePx,
-}: {
+}: Readonly<{
   ayah: Ayah;
   surahNumber: number;
   scriptMode: 'tajweed' | 'uthmani';
   blurClass: string;
   arabicFontSizePx: number;
-}) {
+}>) {
   const isTajweedMode = scriptMode === 'tajweed';
   const ayahNum = ayah.numberInSurah;
   const tajweedSegments = useMemo(() => {
@@ -129,7 +129,7 @@ function AyahMoreMenu({
   onOpenCard,
   onOpenTafsir,
   onOpenWordByWord,
-}: {
+}: Readonly<{
   ayahNum: number;
   menuState: 'open' | 'closed';
   menuRef: React.RefObject<HTMLDivElement | null>;
@@ -138,7 +138,7 @@ function AyahMoreMenu({
   onOpenCard: () => void;
   onOpenTafsir?: () => void;
   onOpenWordByWord?: () => void;
-}) {
+}>) {
   const isOpen = menuState === 'open';
   return (
     <div className="relative" ref={menuRef}>
@@ -244,7 +244,7 @@ function AyahActionBar({
   onOpenNotes,
   onOpenCard,
   onCloseMoreAndRun,
-}: AyahActionBarProps) {
+}: Readonly<AyahActionBarProps>) {
   const isPlaying = playingStatus === 'playing';
   const isBookmarked = bookmarkStatus === 'saved';
   const isRead = readStatus === 'read';
@@ -373,7 +373,9 @@ function AyahActionBar({
   );
 }
 
-function AyahTranslationsBlock({ translations }: { translations: readonly AyahTranslation[] }) {
+function AyahTranslationsBlock({
+  translations,
+}: Readonly<{ translations: readonly AyahTranslation[] }>) {
   return (
     <div className="space-y-3 pt-2 border-t border-[var(--border)]">
       {translations.map((trans) => {
@@ -426,7 +428,7 @@ export default function AyahView({
   onOpenTafsir,
   onOpenWordByWord,
   onOpenVerseCard,
-}: AyahViewProps) {
+}: Readonly<AyahViewProps>) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isRevealedHifz, setIsRevealedHifz] = useState(false);
   const [copied, setCopied] = useState(false);

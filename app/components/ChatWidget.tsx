@@ -94,13 +94,29 @@ function measureAudioPlayerBottomOffset(): number {
   return Math.max(104, height + 16);
 }
 
+function MarkdownCitationLink({
+  href,
+  children,
+}: Readonly<React.AnchorHTMLAttributes<HTMLAnchorElement>>) {
+  return (
+    <Link
+      href={href ?? '#'}
+      className="text-[var(--primary)] font-medium underline underline-offset-2 hover:opacity-80"
+    >
+      {children}
+    </Link>
+  );
+}
+
+const MARKDOWN_COMPONENTS = { a: MarkdownCitationLink };
+
 function MessageSources({
   sources,
   statusKind,
-}: {
+}: Readonly<{
   sources: ExplainSourceRecord[];
   statusKind: 'refusal' | 'verified';
-}) {
+}>) {
   const isRefusal = statusKind === 'refusal';
   return (
     <div className="mt-3 pt-2.5 border-t border-[var(--border)] text-xs">
@@ -138,10 +154,10 @@ function MessageSources({
 function AssistantMessageContent({
   message,
   currentStatus,
-}: {
+}: Readonly<{
   message: Message;
   currentStatus?: string;
-}) {
+}>) {
   if (message.isLoading && !message.content) {
     return <ThinkingLoader status={currentStatus} />;
   }
@@ -151,18 +167,7 @@ function AssistantMessageContent({
   return (
     <div>
       <div className="markdown-body text-sm text-[var(--foreground)]">
-        <ReactMarkdown
-          components={{
-            a: ({ href, children }) => (
-              <Link
-                href={href ?? '#'}
-                className="text-[var(--primary)] font-medium underline underline-offset-2 hover:opacity-80"
-              >
-                {children}
-              </Link>
-            ),
-          }}
-        >
+        <ReactMarkdown components={MARKDOWN_COMPONENTS}>
           {renderCitationsInText(message.content)}
         </ReactMarkdown>
       </div>
@@ -202,7 +207,7 @@ function ChatPanel({
   onClearContext,
   onInputChange,
   onSubmit,
-}: ChatPanelProps) {
+}: Readonly<ChatPanelProps>) {
   return (
     <section
       aria-label="Quran AI Assistant"

@@ -147,11 +147,11 @@ function TopicVerseCard({
   verseRef,
   ayahData,
   loadState,
-}: {
+}: Readonly<{
   verseRef: TopicVerseRef;
   ayahData?: Ayah;
   loadState: 'loading' | 'ready';
-}) {
+}>) {
   const surah = SURAHS[verseRef.surah - 1];
   return (
     <div className="bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl p-4 sm:p-5 hover:border-[var(--primary)] transition-colors flex flex-col gap-3 group">

@@ -13,7 +13,10 @@ interface TranslationSelectorProps {
   onChange: (ids: string[]) => void;
 }
 
-export default function TranslationSelector({ selectedIds, onChange }: TranslationSelectorProps) {
+export default function TranslationSelector({
+  selectedIds,
+  onChange,
+}: Readonly<TranslationSelectorProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -94,27 +97,34 @@ export default function TranslationSelector({ selectedIds, onChange }: Translati
               const isDisabled =
                 !isSelected && normalizedSelectedIds.length >= MAX_PARALLEL_TRANSLATIONS;
 
+              const checkboxId = `translation-edition-${edition.id}`;
               return (
-                <label
+                <div
                   key={edition.id}
-                  className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-start gap-3 p-2.5 rounded-lg transition-colors ${
                     isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--card-hover)]'
                   }`}
                 >
                   <input
+                    id={checkboxId}
                     type="checkbox"
                     checked={isSelected}
                     disabled={isDisabled}
                     onChange={() => handleToggle(edition.id)}
-                    className="mt-0.5 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]"
+                    className="mt-0.5 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:cursor-not-allowed"
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium text-[var(--foreground)]">{edition.name}</div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
+                  <label
+                    htmlFor={checkboxId}
+                    className={`min-w-0 flex-1 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <span className="block text-xs font-medium text-[var(--foreground)]">
+                      {edition.name}
+                    </span>
+                    <span className="block text-[11px] text-[var(--text-muted)]">
                       {edition.language} • {edition.id}
-                    </div>
-                  </div>
-                </label>
+                    </span>
+                  </label>
+                </div>
               );
             })}
           </div>
